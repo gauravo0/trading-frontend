@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 function App() {
+  const API = import.meta.env.VITE_API_BASE_URL; 
   const [symbol, setSymbol] = useState("");
   const [stock, setStock] = useState<any>(null);
   const [compareSymbols, setCompareSymbols] = useState("");
@@ -9,7 +10,7 @@ function App() {
 
   const fetchStock = async () => {
     try {
-      const res = await fetch(`http://localhost:8080/api/stocks/${symbol}`);
+      const res = await fetch(`${API}/api/stocks/${symbol}`);
       const data = await res.json();
       setStock(data);
     } catch (err) {
@@ -67,7 +68,7 @@ function App() {
         {stock && (
           <div style={{ marginTop: "20px", background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
             <h2>{stock.name}</h2>
-            <p style={{ fontSize: "22px" }}>₹{stock.price}</p>
+            <p style={{ fontSize: "22px" }}>{stock.price}</p>
             <p style={{ color: stock.percentChange > 0 ? "#22c55e" : "#ef4444" }}>
               {stock.percentChange}%
             </p>
