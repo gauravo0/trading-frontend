@@ -68,7 +68,7 @@ function App() {
         {stock && (
           <div style={{ marginTop: "20px", background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
             <h2>{stock.name}</h2>
-            <p style={{ fontSize: "22px" }}>₹{stock.price}</p>
+            <p style={{ fontSize: "22px" }}>{stock.price}</p>
             <p style={{ color: stock.percentChange > 0 ? "#22c55e" : "#ef4444" }}>
               {stock.percentChange}%
             </p>
