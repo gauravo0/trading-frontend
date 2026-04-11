@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-
+import Chart from "./components/Chart";
 function App() {
   const API = import.meta.env.VITE_API_BASE_URL;
 
@@ -23,7 +23,7 @@ function App() {
       const res = await fetch(`${API}/api/stocks/${symbol}`);
       const data = await res.json();
       setStock(data);
-      setActiveTab("Stocks"); // Switch to Stocks view when searching
+      setActiveTab("Stocks"); // Switch to Stocks view when searchingß
     } catch (err) { console.error(err); }
   };
 
@@ -84,21 +84,63 @@ function App() {
           <div style={{ animation: "fadeIn 0.5s" }}>
             <h2>🔍 Stock Analysis</h2>
             {stock && (
-              <div style={{ marginTop: "20px", background: "#1e293b", padding: "20px", borderRadius: "10px", borderLeft: "5px solid #22c55e" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <h2 style={{ margin: 0 }}>{stock.name} ({stock.symbol})</h2>
-                    <h3 style={{ fontSize: "28px", margin: "10px 0" }}>₹ {stock.price}</h3>
-                    <p style={{ color: stock.percentChange > 0 ? "#22c55e" : "#ef4444", fontWeight: "bold", margin: 0 }}>
-                      {stock.percentChange}%
-                    </p>
-                  </div>
-                  <button onClick={() => addStockFromCard(stock.symbol)} style={{ background: "#3b82f6", color: "white", padding: "10px 15px", border: "none", borderRadius: "8px", cursor: "pointer" }}>
-                    + Add to Watchlist
-                  </button>
-                </div>
-              </div>
-            )}
+  <>
+    {/* Stock Card */}
+    <div
+      style={{
+        marginTop: "20px",
+        background: "#1e293b",
+        padding: "20px",
+        borderRadius: "10px",
+        borderLeft: "5px solid #22c55e",
+      }}
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <h2 style={{ margin: 0 }}>
+            {stock.name} ({stock.symbol})
+          </h2>
+
+          <h3 style={{ fontSize: "28px", margin: "10px 0" }}>
+            ₹ {Number(stock.price) || 0}
+          </h3>
+
+          <p
+            style={{
+              color:
+                Number(stock.percentChange) > 0
+                  ? "#22c55e"
+                  : "#ef4444",
+              fontWeight: "bold",
+              margin: 0,
+            }}
+          >
+            {Number(stock.percentChange) || 0}%
+          </p>
+        </div>
+
+        <button
+          onClick={() => addStockFromCard(stock.symbol)}
+          style={{
+            background: "#3b82f6",
+            color: "white",
+            padding: "10px 15px",
+            border: "none",
+            borderRadius: "8px",
+            cursor: "pointer",
+          }}
+        >
+          + Add to Watchlist
+        </button>
+      </div>
+    </div>
+
+    {/* ✅ ADD THIS CHART BLOCK */}
+    <div style={{ marginTop: "30px" }}>
+      <Chart symbol={stock.symbol} />
+    </div>
+  </>
+)}
             
             <div style={{ marginTop: "40px", background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
               <h3>📈 Compare Stocks</h3>
