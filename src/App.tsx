@@ -1,152 +1,213 @@
 import React, { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import Chart from "./components/Chart";
 
 function App() {
   const API = import.meta.env.VITE_API_BASE_URL;
 
+  // ✅ 1. NAVIGATION STATE
+  const [activeTab, setActiveTab] = useState("Dashboard");
+
+  // ✅ EXISTING STATES
   const [symbol, setSymbol] = useState("");
-  const [searchedSymbol, setSearchedSymbol] = useState(""); // ✅ FIX
-  const [stock, setStock] = useState<any>(null);
+  const [stock, setStock] = useState<any | null>(null);
   const [compareSymbols, setCompareSymbols] = useState("");
   const [compareData, setCompareData] = useState<any[]>([]);
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [premiumWatchlist, setPremiumWatchlist] = useState<string[]>([]);
+  const [watchInput, setWatchInput] = useState("");
 
+  // ✅ LOGIC FUNCTIONS
   const fetchStock = async () => {
-    if (!symbol.trim()) return;
-
+    if (!symbol) return alert("Enter stock symbol");
     try {
-      console.log("🔍 Fetching stock:", symbol);
-
       const res = await fetch(`${API}/api/stocks/${symbol}`);
       const data = await res.json();
-
-      console.log("📦 Stock API:", data);
-
       setStock(data);
-
-      // ✅ Lock symbol ONLY after search click
-      setSearchedSymbol(symbol);
-
-    } catch (err) {
-      console.error("❌ Stock error:", err);
-    }
+      setActiveTab("Stocks"); // Switch to Stocks view when searching
+    } catch (err) { console.error(err); }
   };
 
   const fetchComparison = async () => {
+    if (!compareSymbols) return alert("Enter symbols");
     try {
-      const symbolsArray = compareSymbols.split(",").map((s) => s.trim());
-
+      const symbolsArray = compareSymbols.split(",").map(s => s.trim());
       const res = await fetch(`${API}/api/stocks/compare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(symbolsArray),
+        body: JSON.stringify(symbolsArray)
       });
-
       const data = await res.json();
       setCompareData(data);
-    } catch (err) {
-      console.error(err);
+    } catch (err) { console.error(err); }
+  };
+
+  const addToWatchlist = () => {
+    if (!watchInput) return;
+    const stockName = watchInput.toUpperCase();
+    setWatchlist(prev => prev.includes(stockName) ? prev : [...prev, stockName]);
+    setWatchInput("");
+  };
+
+  const addStockFromCard = (s: string) => {
+    setWatchlist(prev => prev.includes(s) ? prev : [...prev, s]);
+  };
+
+  const addToPremium = (item: string) => {
+    setPremiumWatchlist(prev => [...prev, item]);
+    setWatchlist(prev => prev.filter(s => s !== item));
+  };
+
+  const removeFromWatchlist = (item: string) => {
+    setWatchlist(prev => prev.filter(s => s !== item));
+  };
+
+  // ✅ 2. DYNAMIC CONTENT RENDERER
+  const renderContent = () => {
+    switch (activeTab) {
+      case "Dashboard":
+        return (
+          <div style={{ animation: "fadeIn 0.5s" }}>
+            <h2>🏠 Market Overview</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "20px", marginTop: "20px" }}>
+              {["AI Alerts", "Market Trends", "Investor Activity", "News & Sentiment"].map(card => (
+                <div key={card} style={{ background: "#1e293b", padding: "30px 20px", borderRadius: "12px", border: "1px solid #334155" }}>
+                  <h3 style={{ fontSize: "16px", margin: 0 }}>{card}</h3>
+                  <p style={{ color: "#94a3b8", fontSize: "12px", marginTop: "10px" }}>Live updates active</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
+      case "Stocks":
+        return (
+          <div style={{ animation: "fadeIn 0.5s" }}>
+            <h2>🔍 Stock Analysis</h2>
+            {stock && (
+              <div style={{ marginTop: "20px", background: "#1e293b", padding: "20px", borderRadius: "10px", borderLeft: "5px solid #22c55e" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h2 style={{ margin: 0 }}>{stock.name} ({stock.symbol})</h2>
+                    <h3 style={{ fontSize: "28px", margin: "10px 0" }}>₹ {stock.price}</h3>
+                    <p style={{ color: stock.percentChange > 0 ? "#22c55e" : "#ef4444", fontWeight: "bold", margin: 0 }}>
+                      {stock.percentChange}%
+                    </p>
+                  </div>
+                  <button onClick={() => addStockFromCard(stock.symbol)} style={{ background: "#3b82f6", color: "white", padding: "10px 15px", border: "none", borderRadius: "8px", cursor: "pointer" }}>
+                    + Add to Watchlist
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <div style={{ marginTop: "40px", background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
+              <h3>📈 Compare Stocks</h3>
+              <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+                <input placeholder="TCS.NS, INFY.NS" value={compareSymbols} onChange={(e) => setCompareSymbols(e.target.value)} style={{ padding: "10px", borderRadius: "6px", background: "#0f172a", border: "1px solid #334155", color: "white", flex: 1 }} />
+                <button onClick={fetchComparison} style={{ padding: "10px 20px", background: "#3b82f6", border: "none", borderRadius: "6px", color: "white", cursor: "pointer" }}>Compare</button>
+              </div>
+              {compareData.length > 0 && (
+                <div style={{ height: "300px" }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={compareData}>
+                      <XAxis dataKey="symbol" stroke="#94a3b8" />
+                      <YAxis stroke="#94a3b8" />
+                      <Tooltip contentStyle={{ background: "#020617", border: "none" }} />
+                      <Line type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={3} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case "Watchlist":
+        return (
+          <div style={{ animation: "fadeIn 0.5s" }}>
+            <h2>⭐ My Watchlists</h2>
+            <div style={{ display: "flex", gap: "10px", margin: "20px 0" }}>
+              <input placeholder="Quick Add Symbol" value={watchInput} onChange={(e) => setWatchInput(e.target.value)} style={{ padding: "10px", borderRadius: "6px", background: "#1e293b", border: "1px solid #334155", color: "white" }} />
+              <button onClick={addToWatchlist} style={{ padding: "10px 20px", background: "#22c55e", color: "white", border: "none", borderRadius: "6px", cursor: "pointer" }}>Add</button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+              <div style={{ background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
+                <h3>📌 Standard</h3>
+                {watchlist.length === 0 ? <p style={{ color: "#64748b" }}>Empty</p> : watchlist.map((item, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #334155" }}>
+                    <span>{item}</span>
+                    <div>
+                      <button onClick={() => addToPremium(item)} style={{ background: "none", border: "none", color: "gold", cursor: "pointer", marginRight: "10px" }}>⭐</button>
+                      <button onClick={() => removeFromWatchlist(item)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer" }}>❌</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ background: "#1e293b", padding: "20px", borderRadius: "10px", border: "1px solid gold" }}>
+                <h3 style={{ color: "gold" }}>💎 Premium</h3>
+                {premiumWatchlist.length === 0 ? <p style={{ color: "#64748b" }}>Empty</p> : premiumWatchlist.map((item, i) => (
+                  <div key={i} style={{ padding: "10px 0", color: "gold" }}>{item}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return <div style={{ textAlign: "center", marginTop: "100px", color: "#64748b" }}><h2>{activeTab}</h2><p>This module is coming soon.</p></div>;
     }
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0f172a", color: "white" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#0b0e14", color: "white", fontFamily: "'Inter', sans-serif" }}>
       
-      {/* Sidebar */}
-      <div style={{ width: "220px", background: "#020617", padding: "20px" }}>
-        <h2 style={{ marginBottom: "20px" }}>📊 TradeX</h2>
-        <ul style={{ listStyle: "none", padding: 0 }}>
-          <li style={{ margin: "10px 0" }}>Dashboard</li>
-          <li style={{ margin: "10px 0" }}>Stocks</li>
-          <li style={{ margin: "10px 0" }}>Portfolio</li>
-          <li style={{ margin: "10px 0" }}>Watchlist</li>
-          <li style={{ margin: "10px 0" }}>News</li>
-        </ul>
+      {/* ✅ SIDEBAR */}
+      <div style={{ width: "240px", background: "#020617", padding: "25px 15px", borderRight: "1px solid #1e293b" }}>
+        <h2 style={{ color: "#3b82f6", marginBottom: "40px", paddingLeft: "10px" }}>📊 TradeX</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {["Dashboard", "Stocks", "Portfolio", "Watchlist", "News"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                textAlign: "left",
+                padding: "12px 20px",
+                background: activeTab === tab ? "#1e293b" : "transparent",
+                color: activeTab === tab ? "#3b82f6" : "#94a3b8",
+                border: "none",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontSize: "15px",
+                fontWeight: activeTab === tab ? "600" : "400",
+                transition: "all 0.3s ease"
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Main */}
-      <div style={{ flex: 1, padding: "20px" }}>
-        <h1 style={{ fontSize: "28px" }}>📈 Trading Dashboard</h1>
-
-        {/* Search */}
-        <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-          <input
-            placeholder="Enter stock (AAPL or RELIANCE.NSE)"
-            value={symbol}
-            onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-            style={{ padding: "10px", borderRadius: "8px", border: "none" }}
-          />
-          <button
-            onClick={fetchStock}
-            style={{ padding: "10px 20px", background: "#22c55e", borderRadius: "8px" }}
-          >
-            Search
-          </button>
-        </div>
-
-        {/* Stock Card */}
-        {stock && (
-          <div style={{ marginTop: "20px", background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
-            <h2>{stock.name}</h2>
-            <p style={{ fontSize: "22px" }}>₹{stock.price}</p>
-            <p style={{ color: stock.percentChange > 0 ? "#22c55e" : "#ef4444" }}>
-              {stock.percentChange}%
-            </p>
-          </div>
-        )}
-
-        {/* ✅ Chart ONLY after search */}
-        {stock && searchedSymbol && (
-          <div style={{ marginTop: "30px" }}>
-            <Chart symbol={searchedSymbol} />
-          </div>
-        )}
-
-        {/* Compare */}
-        <div style={{ marginTop: "30px" }}>
-          <h2>Compare Stocks</h2>
-
-          <div style={{ display: "flex", gap: "10px" }}>
+      {/* ✅ MAIN AREA */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        
+        {/* Persistent Header */}
+        <div style={{ padding: "20px 40px", background: "#020617", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #1e293b" }}>
+          <h1 style={{ fontSize: "22px", margin: 0 }}>{activeTab}</h1>
+          <div style={{ display: "flex", gap: "12px" }}>
             <input
-              placeholder="AAPL, MSFT"
-              value={compareSymbols}
-              onChange={(e) => setCompareSymbols(e.target.value)}
-              style={{ padding: "10px", borderRadius: "8px" }}
+              placeholder="Search Symbol (e.g. RELIANCE.NS)"
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              style={{ padding: "10px 15px", borderRadius: "8px", background: "#0f172a", border: "1px solid #334155", color: "white", width: "250px" }}
             />
-            <button
-              onClick={fetchComparison}
-              style={{ padding: "10px 20px", background: "#3b82f6", borderRadius: "8px" }}
-            >
-              Compare
-            </button>
+            <button onClick={fetchStock} style={{ padding: "10px 25px", background: "#22c55e", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "600" }}>Search</button>
           </div>
-
-          {compareData.length > 0 && (
-            <div style={{ marginTop: "20px", background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={compareData}>
-                  <XAxis dataKey="symbol" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="price" stroke="#22c55e" />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
         </div>
 
-        {/* Cards */}
-        <div style={{
-          marginTop: "40px",
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "20px"
-        }}>
-          {["AI Alerts", "Market Trends", "Investor Activity", "News & Sentiment"].map((item, i) => (
-            <div key={i} style={{ background: "#1e293b", padding: "20px", borderRadius: "10px" }}>
-              <h3>{item}</h3>
-            </div>
-          ))}
+        {/* Dynamic Page Content */}
+        <div style={{ padding: "30px 40px", overflowY: "auto", flex: 1 }}>
+          {renderContent()}
         </div>
 
       </div>
