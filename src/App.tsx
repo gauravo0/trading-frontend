@@ -28,6 +28,7 @@ function App() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [premiumWatchlist, setPremiumWatchlist] = useState<string[]>([]);
   const [watchInput, setWatchInput] = useState("");
+  const [showAI, setShowAI] = useState(false);
 
   // ✅ LOGIC FUNCTIONS
   const fetchStock = async () => {
@@ -126,7 +127,7 @@ function App() {
           </div>
         );
 
-      case "Stocks":
+case "Stocks":
         return (
           <div style={{ animation: "fadeIn 0.5s" }}>
             <h2>🔍 Stock Analysis</h2>
@@ -506,5 +507,4 @@ function App() {
     </div>
   );
 }
-
 export default App;
