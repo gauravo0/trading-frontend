@@ -9,8 +9,11 @@ import {
 } from "recharts";
 import Chart from "./components/Chart";
 import IndicatorPanel from "./components/IndicatorPanel";
+import AIInsight from "./components/AI/AIInsight";
+import NewsPanel from "./components/NewsPanel";
 function App() {
   const API = import.meta.env.VITE_API_BASE_URL;
+  const [showAI, setShowAI] = useState(false);
 
   // ✅ 1. NAVIGATION STATE
   const [activeTab, setActiveTab] = useState("Dashboard");
@@ -28,7 +31,7 @@ function App() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [premiumWatchlist, setPremiumWatchlist] = useState<string[]>([]);
   const [watchInput, setWatchInput] = useState("");
-  const [showAI, setShowAI] = useState(false);
+  const [newsData, setNewsData] = useState<any>(null);
 
   // ✅ LOGIC FUNCTIONS
   const fetchStock = async () => {
@@ -81,6 +84,15 @@ function App() {
     setWatchlist((prev) => prev.filter((s) => s !== item));
   };
 
+  const fetchNews = async () => {
+  if (!symbol) return;
+
+  const res = await fetch(`http://localhost:8080/api/news/${symbol}`);
+  const data = await res.json();
+
+  setNewsData(data);
+};
+
   // ✅ 2. DYNAMIC CONTENT RENDERER
   const renderContent = () => {
     switch (activeTab) {
@@ -96,33 +108,31 @@ function App() {
                 marginTop: "20px",
               }}
             >
-              {[
-                "AI Alerts",
-                "Market Trends",
-                "Investor Activity",
-                "News & Sentiment",
-              ].map((card) => (
-                <div
-                  key={card}
-                  style={{
-                    background: "#1e293b",
-                    padding: "30px 20px",
-                    borderRadius: "12px",
-                    border: "1px solid #334155",
-                  }}
-                >
-                  <h3 style={{ fontSize: "16px", margin: 0 }}>{card}</h3>
-                  <p
-                    style={{
-                      color: "#94a3b8",
-                      fontSize: "12px",
-                      marginTop: "10px",
-                    }}
-                  >
-                    Live updates active
-                  </p>
-                </div>
-              ))}
+              {["AI Alerts", "Market Trends", "Investor Activity", "News & Sentiment"].map((card) => (
+  <div
+    key={card}
+   onClick={() => {
+  if (card === "AI Alerts") {
+    setShowAI(true);
+  } else if (card === "News & Sentiment") {
+    setActiveTab("News");
+    fetchNews(); // 🔥 AUTO LOAD
+  }
+}}
+    style={{
+      background: "#1e293b",
+      padding: "30px 20px",
+      borderRadius: "12px",
+      border: "1px solid #334155",
+      cursor: card === "AI Alerts"  || card === "News & Sentiment" ? "pointer" : "default",
+    }}
+  >
+    <h3 style={{ fontSize: "16px", margin: 0 }}>{card}</h3>
+    <p style={{ color: "#94a3b8", fontSize: "12px", marginTop: "10px" }}>
+      Live updates active
+    </p>
+  </div>
+))}
             </div>
           </div>
         );
@@ -209,6 +219,7 @@ case "Stocks":
                 </div>
               </>
             )}
+            
 
             <div
               style={{
@@ -384,6 +395,30 @@ case "Stocks":
           </div>
         );
 
+        case "News":
+  return (
+    <div style={{ animation: "fadeIn 0.5s" }}>
+      <h2>📰 News & Sentiment</h2>
+
+      <button
+        onClick={fetchNews}
+        style={{
+          padding: "10px 20px",
+          background: "#3b82f6",
+          border: "none",
+          borderRadius: "6px",
+          color: "white",
+          cursor: "pointer",
+          marginBottom: "20px",
+        }}
+      >
+        Load News
+      </button>
+
+      {newsData && <NewsPanel data={newsData} />}
+    </div>
+  );
+
       default:
         return (
           <div
@@ -504,6 +539,8 @@ case "Stocks":
           {renderContent()}
         </div>
       </div>
+      {/* ✅ ADD AI MODAL HERE */}
+<AIInsight open={showAI} onClose={() => setShowAI(false)} />
     </div>
   );
 }
